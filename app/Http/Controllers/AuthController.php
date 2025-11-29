@@ -17,20 +17,40 @@ class AuthController extends Controller
          * ==========1===========
          * Validasi data registrasi yang masuk
          */
-
-
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:225',
+            'email' => 'required|email|unique:users|max:255',
+            'password' => 'required|string|min:8'
+        ]);
+        if($validator->fails()){
+            return response()->json(['message' => 'account anda terlihat salah',
+            'errors' => $validator->errors()], 422);
+        }
+     
+       
         /**
          * =========2===========
          * Buat user baru dan generate token API, atur masa berlaku token 1 jam
          */
-
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password)
+        ]);
 
 
         /**
          * =========3===========
          * Kembalikan response sukses dengan data $user dan $token
          */
-
+         $token = $user->createToken('auth_token')->plainTextToken;
+        return response()->json([
+            'message' => 'Registasi berhasil Yey 🔥🔥',
+            'data' => [
+                'user' => $user,
+                'token' => $token
+            ]
+        ], 201);
     }
 
 
@@ -40,18 +60,31 @@ class AuthController extends Controller
          * =========4===========
          * Validasi data login yang masuk
          */
-
+        /**
+        */ 
+        if(!Auth::attempt($request->only('email', 'password'))){
+            return response()->json([
+                'message' => 'invalid nih brooww 💀'
+            ], 401);
+        }
         /**
          * =========5===========
          * Generate token API untuk user yang terautentikasi
          * Atur token agar expired dalam 1 jam
          */
-
+        $user = User::where('email', $request->email)->firstOrFail();
+        $token = $user->createToken('auth_token')->plainTextToken;
         /**
          * =========6===========
          * Kembalikan response sukses dengan data $user dan $token
          */
-
+        return response()->json([
+            'message' => 'login sukses nih brow 😋',
+            'data' => [
+                'user' => $user,
+                'token' => $token
+            ]
+            ], 200);
     }
 
     public function logout(Request $request)
@@ -60,12 +93,14 @@ class AuthController extends Controller
          * =========7===========
          * Invalidate token yang digunakan untuk autentikasi request saat ini
          */
-
+        $request->user()->currentAccessToken()->delete();
 
         /**
          * =========8===========
          * Kembalikan response sukses
          */
-
+        return response()->json([
+            'message' => 'YEY berhasilllllll 🤖👩‍🦱👩‍🦳🧑‍🏫 selamat'
+        ], 200);
     }
 }
